@@ -2,74 +2,130 @@ package etu2802;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Set;
-import java.lang.reflect.Method;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
 
 public class FrontController extends HttpServlet {
-    private List<Class<?>> controllerClasses; //liste pour stocker les classes des contrôleurs
+    private List<Class<?>> controllerClasses; // liste pour stocker les classes des contrôleurs
+    private HashMap<String, Mapping> mappingUrls;
 
+    public List<Class<?>> getControllerClasses() {
+        return controllerClasses;
+    }
+
+    public HashMap<String, Mapping> getMappingUrls() {
+        return mappingUrls;
+    }
+
+    public void setControllerClasses(List<Class<?>> controllerClasses) {
+        this.controllerClasses = controllerClasses;
+    }
+
+    public void setMappingUrls(HashMap<String, Mapping> mappingUrls) {
+        this.mappingUrls = mappingUrls;
+    }
+
+    @Override
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
         String pkg = this.getInitParameter("package");
-        controllerClasses = allMappingUrls(pkg);
+        controllerClasses = getAllControllers(pkg);
+        mappingUrls = allMappingUrls(pkg);
     }
 
-    public List<Class<?>> allMappingUrls(String pckg) {
-        controllerClasses = new ArrayList<>(); 
-
-        ServletContext context = getServletContext(); // Obtention du contexte du servlet
-        String path = "/WEB-INF/classes/" + pckg;
-
-        Set<String> classNames = context.getResourcePaths(path);// Récupération des chemins des ressources dans le package
+    public List<Class<?>> getAllControllers(String pckg) {
+        List<Class<?>> controllerClasses = new ArrayList<>();
+        ServletContext context = getServletContext();
+        String path = "/WEB-INF/classes/" + pckg.replace('.', '/');
+        
+        Set<String> classNames = context.getResourcePaths(path);
         if (classNames != null) {
             for (String className : classNames) {
                 if (className.endsWith(".class")) {
-                    String fullClassName = className.substring(0, className.length() - 6); // Suppression de l'extension ".class"
-                    int taille = fullClassName.split("/").length;
-                    fullClassName = fullClassName.split("/")[taille - 2] + "." + fullClassName.split("/")[taille - 1]; // Construction du nom complet de la classe 
+                    String fullClassName = className.substring("/WEB-INF/classes/".length(), className.length() - 6).replace('/', '.');
                     try {
                         Class<?> myClass = Class.forName(fullClassName);
-                        AnnotationController annotation = myClass.getAnnotation(AnnotationController.class); // Récupération de l'annotation
-                        if (annotation != null) {
-                            System.out.println("anotation value"+annotation.value());
-                            controllerClasses.add(myClass); // Ajout de la classe à la liste
+                        if (myClass.isAnnotationPresent(AnnotationController.class)) {
+                            controllerClasses.add(myClass);
                         }
-                    } catch (Exception e) {
-                        System.out.println(e);
+                    } catch (ClassNotFoundException e) {
+                        e.printStackTrace();
                     }
                 }
             }
-        }
-        else{
+        } else {
             System.out.println("Class Name null");
         }
         return controllerClasses;
     }
-    
+
+    public HashMap<String, Mapping> allMappingUrls(String pckg) {
+        HashMap<String, Mapping> mappingUrl = new HashMap<>();
+        ServletContext context = getServletContext();
+        String path = "/WEB-INF/classes/" + pckg.replace('.', '/');
+
+        Set<String> classNames = context.getResourcePaths(path);
+        if (classNames != null) {
+            for (String className : classNames) {
+                if (className.endsWith(".class")) {
+                    String fullClassName = className.substring("/WEB-INF/classes/".length(), className.length() - 6).replace('/', '.');
+                    try {
+                        Class<?> myClass = Class.forName(fullClassName);
+                        for (Method method : myClass.getDeclaredMethods()) {
+                            if (method.isAnnotationPresent(Url.class)) {
+                                Url url = method.getAnnotation(Url.class);
+                                Mapping map = new Mapping(myClass.getSimpleName(), method.getName());
+                                if (mappingUrl.containsKey(url.lien())) {
+                                    throw new IllegalArgumentException("Duplicate URL mapping found: " + url.lien());
+                                }
+                                mappingUrl.put(url.lien(), map);
+                            }
+                        }
+                    } catch (ClassNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        } else {
+            System.out.println("Class Name null");
+        }
+        return mappingUrl;
+    }
+
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/plain");
         try (PrintWriter out = response.getWriter()) {
             String url = request.getRequestURI();
             out.println("URL Requested: " + url);
-            
-            out.println(controllerClasses);
+
             for (Class<?> controllerClass : controllerClasses) {
                 AnnotationController annotation = controllerClass.getAnnotation(AnnotationController.class);
                 if (annotation != null) {
                     String controllerName = controllerClass.getSimpleName();
-                    out.println("Controller Found: " + controllerName);
+                    out.println("Controller Found Sont: " + controllerName);
                 } else {
                     out.println("Annotation null");
                 }
+            }
+
+            // Afficher le contenu de mappingUrls
+            out.println("Mapping URLs sont:");
+            for (Map.Entry<String, Mapping> entry : mappingUrls.entrySet()) {
+                String urlPattern = entry.getKey();
+                Mapping mapping = entry.getValue();
+                out.println("URL: " + urlPattern + " -> Controller: " + mapping.getClassName() + ", Method: " + mapping.getMethod());
             }
         }
     }
