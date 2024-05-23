@@ -9,11 +9,11 @@ Sprint1-2802
 Vous devez saisir web xml et ajouter init-param. Voici l'exemple :
 model est le nom de votre package controller
 
-<init-param>
+<!-- <init-param>
           <param-name>package</param-name>
           <param-value>modele</param-value>
           <description>package_modele</description>
-</init-param>
+</init-param> -->
         
 
 Sprint2-2802
