@@ -9,12 +9,10 @@ Sprint1-2802
 Vous devez saisir web xml et ajouter init-param. Voici l'exemple :
 model est le nom de votre package controller
 
-<!-- <init-param>
-          <param-name>package</param-name>
-          <param-value>modele</param-value>
-          <description>package_modele</description>
-</init-param> -->
-        
+ajouter init-param
+dans le param-name ajouter le nom package
+dans le param-value ajouter le package de votre controller
+
 
 Sprint2-2802
 Pour utiliser l'annotation url, vous devez annoter la méthode
