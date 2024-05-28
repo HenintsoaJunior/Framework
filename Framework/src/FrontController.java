@@ -2,9 +2,10 @@ package etu2802;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -47,6 +48,7 @@ public class FrontController extends HttpServlet {
         response.setContentType("text/plain");
         try (PrintWriter out = response.getWriter()) {
             String url = request.getRequestURI();
+
             out.println("URL Requested: " + url);
 
             for (Class<?> controllerClass : controllerClasses) {
@@ -58,14 +60,38 @@ public class FrontController extends HttpServlet {
                     out.println("Annotation null");
                 }
             }
+            
+            Mapping map = mappingUrls.get(url);
+
+            if (map != null) {
+                out.println("URL: " + url + " -> Controller: " + map.getClassName() + ", Method: " + map.getMethod());
+                try {
+                    String packageName = this.getInitParameter("package");
+                    String fullClassName = packageName+"."+ map.getClassName();
+                    Class<?> clazz = Class.forName(fullClassName);
+                    Object object = clazz.newInstance();
+                    Method method = clazz.getMethod(map.getMethod());
+
+                    String valeur = (String) method.invoke(object);
+                    out.println("La valeur retournee : " + valeur);
+                
+            
+                } catch (ClassNotFoundException | NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                    out.println("Erreur lors de l'invocation de la méthode : " + e.getMessage());
+                    e.printStackTrace();
+                }
+            } else {
+                out.println("URL not found");
+            }
+            
 
             // Afficher le contenu de mappingUrls
-            out.println("Mapping URLs sont:");
-            for (Map.Entry<String, Mapping> entry : mappingUrls.entrySet()) {
-                String urlPattern = entry.getKey();
-                Mapping mapping = entry.getValue();
-                out.println("URL: " + urlPattern + " -> Controller: " + mapping.getClassName() + ", Method: " + mapping.getMethod());
-            }
+            // out.println("Mapping URLs sont:");
+            // for (Map.Entry<String, Mapping> entry : mappingUrls.entrySet()) {
+            //     String urlPattern = entry.getKey();
+            //     Mapping mapping = entry.getValue();
+            //     out.println("URL: " + urlPattern + " -> Controller: " + mapping.getClassName() + ", Method: " + mapping.getMethod());
+            // }
         }
     }
 
