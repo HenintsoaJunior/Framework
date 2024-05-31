@@ -1,71 +1,108 @@
 # Framework 2802
 
-java17Tomtac8
+## Prérequis
+- Java 17
+- Tomcat 8
 
-Pour utiliser jar, vous devez annoter votre contrôleur de classe avec notre annotation : AnnotationController
-Vous devez importer : etu2802.AnnotationController ;
+## Utilisation
 
-Sprint1-2802
-Vous devez saisir web xml et ajouter init-param. Voici l'exemple :
-model est le nom de votre package controller
+### Sprint 1 - Configuration Initiale
 
-ajouter init-param
-dans le param-name ajouter le nom package
-dans le param-value ajouter le package de votre controller
+Pour utiliser le fichier JAR, vous devez annoter votre classe contrôleur avec notre annotation `@AnnotationController`.
 
-Sprint2-2802
-Pour utiliser l'annotation url, vous devez annoter la méthode
+```java
+import etu2802.AnnotationController;
+```
+
+#### Configuration du `web.xml`
+Vous devez saisir le fichier `web.xml` et ajouter un `init-param`. Voici un exemple :
+
+```xml
+<init-param>
+    <param-name>package</param-name>
+    <param-value>votre.package.controller</param-value>
+</init-param>
+```
+
+- **param-name** : ajoutez le nom du package.
+- **param-value** : ajoutez le package de votre contrôleur.
+
+### Sprint 2 - Annotation d'URL
+
+Pour utiliser l'annotation `@Url`, vous devez annoter la méthode souhaitée.
+
+```java
+import etu2802.Url;
 
 @Url(lien = "/exemple0")
-    méthode public void 1() {
-    }
-    
-Vous devez importer import etu2802.Url ;
+public void methode1() {
+    // votre code ici
+}
+```
 
+### Sprint 3 - Exemple Avancé d'Annotation d'URL
 
-Sprint3-2802
+Pour utiliser l'annotation `@Url`, vous devez annoter la méthode comme suit :
 
-Pour utiliser l'annotation url, vous devez annoter la méthode
+```java
+import etu2802.Url;
+
 @Url(lien = "/Framework/example1")
-    public String methode2() {
-        return "Url methode1";
-    }
+public String methode2() {
+    return "Url methode1";
+}
+```
 
-configuration init param
+#### Configuration du `web.xml`
 
-init-param
-    param-name>package/param-name>
-    param-value>modele/param-value>
-    description>package_modele/description
-init-param
+```xml
+<init-param>
+    <param-name>package</param-name>
+    <param-value>modele</param-value>
+    <description>package_modele</description>
+</init-param>
+```
 
+Dans votre navigateur, saisissez l'URL comme suit : `/example1`.
 
-met dans le navigateur le nom de vore url par example :example1
-et le but du sprint3 c'est de d'ajouter une type de return string
+Le but de ce sprint est d'ajouter un type de retour `String`.
 
+### Sprint 4 - Utilisation de Dispatcher
 
-sprint4-2802 utilisation de dispacher
-le return du fonction doit etre ModelView
-comme le code suivant
+Le retour de la fonction doit être `ModelView`. Voici un exemple de code :
+
+```java
+import etu2802.Url;
 
 @Url(lien="/emp")
-    public ModelView emp(){
-        Emp[] list_emp = new Emp[3];
-        list_emp[0] = new Emp("Emp 1");
-        list_emp[1] = new Emp("Emp 2");
-        list_emp[2] = new Emp("Emp 3");
+public ModelView emp() {
+    Emp[] listEmp = new Emp[3];
+    listEmp[0] = new Emp("Emp 1");
+    listEmp[1] = new Emp("Emp 2");
+    listEmp[2] = new Emp("Emp 3");
 
-        ModelView mv = new ModelView();
-        mv.setView("emp.jsp");
-        mv.addItem("emp", list_emp);
-        return mv;
-    }
+    ModelView mv = new ModelView();
+    mv.setView("emp.jsp");
+    mv.addItem("emp", listEmp);
+    return mv;
+}
+```
 
-pour recuperer les valeurs dans emp.jsp
-Emp[] list_emp = (Emp[])request.getAttribute("emp");
+Pour récupérer les valeurs dans `emp.jsp` :
 
-on utilise getAttribute()
+```java
+Emp[] listEmp = (Emp[])request.getAttribute("emp");
+```
 
-et il faut aussi ajouter une constructeur vide a chaque class
+On utilise `getAttribute()` pour récupérer les valeurs.
+
+Il est également nécessaire d'ajouter un constructeur vide à chaque classe :
+
+```java
 public Emp() {
 }
+```
+
+---
+
+En suivant ces étapes, vous pourrez configurer et utiliser le Framework 2802 efficacement
