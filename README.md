@@ -24,6 +24,7 @@ Vous devez importer import etu2802.Url ;
 
 
 Sprint3-2802
+
 Pour utiliser l'annotation url, vous devez annoter la méthode
 @Url(lien = "/Framework/example1")
     public String methode2() {
@@ -41,4 +42,30 @@ init-param
 
 met dans le navigateur le nom de vore url par example :example1
 et le but du sprint3 c'est de d'ajouter une type de return string
-        
+
+
+sprint4-2802 utilisation de dispacher
+le return du fonction doit etre ModelView
+comme le code suivant
+
+@Url(lien="/emp")
+    public ModelView emp(){
+        Emp[] list_emp = new Emp[3];
+        list_emp[0] = new Emp("Emp 1");
+        list_emp[1] = new Emp("Emp 2");
+        list_emp[2] = new Emp("Emp 3");
+
+        ModelView mv = new ModelView();
+        mv.setView("emp.jsp");
+        mv.addItem("emp", list_emp);
+        return mv;
+    }
+
+pour recuperer les valeurs dans emp.jsp
+Emp[] list_emp = (Emp[])request.getAttribute("emp");
+
+on utilise getAttribute()
+
+et il faut aussi ajouter une constructeur vide a chaque class
+public Emp() {
+}
