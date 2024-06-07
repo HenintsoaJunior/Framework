@@ -105,4 +105,12 @@ public Emp() {
 
 ---
 
+### Sprint 5 - Gestion D'exeption
+
+-package not found
+-page not found
+-Duplicata url
+-Return type
+
+
 En suivant ces étapes, vous pourrez configurer et utiliser le Framework 2802 efficacement
