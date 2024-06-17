@@ -112,5 +112,41 @@ public Emp() {
 -Duplicata url
 -Return type
 
+### Spring 6 Get Valeurs des Formulaire
+
+Ajouter des annotation sur les atttribut
+
+```java
+@AnnotationAttribute("id")
+    int id;
+    
+    @AnnotationAttribute("nom")
+    String nom;
+    
+    @AnnotationAttribute("age")
+    int age;
+```
+
+Les valeurs des annotation doit etre comme celle des name des input
+
+```html
+<form action="save_employer" method="post">
+  <input type="number" name="id">
+  <input type="text" name="nom">
+  <input type="number" name="age">
+  <input type="submit" value="Valider">
+ </form>
+```
+
+```java
+        dans la url save_employer
+        @Url(lien="/save_employer")
+    public ModelView save(){
+        ModelView mv = new ModelView();
+        mv.setView("saveEmp.jsp");
+        mv.addItem("employer",this);
+        return mv;
+    }
+```
 
 En suivant ces étapes, vous pourrez configurer et utiliser le Framework 2802 efficacement
