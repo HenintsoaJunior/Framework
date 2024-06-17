@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
-import java.util.List;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -14,19 +13,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 public class FrontController extends HttpServlet {
-    private List<Class<?>> controllerClasses; // liste pour stocker les classes des contrôleurs
     private HashMap<String, Mapping> mappingUrls;
-
-    public List<Class<?>> getControllerClasses() {
-        return controllerClasses;
-    }
 
     public HashMap<String, Mapping> getMappingUrls() {
         return mappingUrls;
-    }
-
-    public void setControllerClasses(List<Class<?>> controllerClasses) {
-        this.controllerClasses = controllerClasses;
     }
 
     public void setMappingUrls(HashMap<String, Mapping> mappingUrls) {
@@ -39,8 +29,7 @@ public class FrontController extends HttpServlet {
         try {
             String pkg = this.getInitParameter("package");
             ServletContext context = getServletContext();
-            controllerClasses = Utils.getAllControllers(context, pkg);
-            mappingUrls = Utils.allMappingUrls(context, pkg);   
+            mappingUrls = Utils.allMappingUrls(context, pkg);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -59,14 +48,34 @@ public class FrontController extends HttpServlet {
     
                 out.println("URL: " + url + " -> Controller: " + map.getClassName() + ", Method: " + map.getMethod());
                 try {
-                    String packageName = this.getInitParameter("package");
-                    String fullClassName = packageName + "." + map.getClassName();
-                    Class<?> clazz = Class.forName(fullClassName);
-                    Object object = clazz.newInstance();
-                    
-                    Utils.dispatchModelView(request, response, object, url, mappingUrls);
+                    String packageNames = this.getInitParameter("package");
+                    String[] packages = packageNames.split(",");
+                    boolean foundClass = false;
     
-                } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                    for (String packageName : packages) {
+                        packageName = packageName.trim();
+    
+                        String fullClassName = packageName + "." + map.getClassName();
+                        try {
+                            Class<?> clazz = Class.forName(fullClassName);
+                            Object object = clazz.newInstance();
+    
+                            request.getParameterMap().forEach((key, values) -> {
+                                out.println("Parameter Name: " + key + ", Value: " + String.join(", ", values));
+                            });
+    
+                            Utils.setObject(request, response, object);
+                            Utils.dispatchModelView(request, response, object, url, mappingUrls);
+                            foundClass = true;
+                        } catch (ClassNotFoundException e) {
+                            e.printStackTrace();
+                        }
+                    }
+    
+                    if (!foundClass) {
+                        Utils.generateNotFoundPage(out);
+                    }
+                } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
                     out.println("Erreur lors de l'invocation de la méthode : " + e.getMessage());
                     e.printStackTrace();
                 }
@@ -76,6 +85,7 @@ public class FrontController extends HttpServlet {
             }
         }
     }
+    
     
     
     @Override
