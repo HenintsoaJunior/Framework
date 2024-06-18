@@ -64,7 +64,6 @@ public class FrontController extends HttpServlet {
                                 out.println("Parameter Name: " + key + ", Value: " + String.join(", ", values));
                             });
     
-                            Utils.setObject(request, response, object);
                             Utils.dispatchModelView(request, response, object, url, mappingUrls);
                             foundClass = true;
                         } catch (ClassNotFoundException e) {

@@ -114,20 +114,19 @@ public Emp() {
 
 ### Spring 6 Get Valeurs des Formulaire
 
-Ajouter des annotation sur les atttribut
+Ajouter des annotation pour les parametre a recuperer 
 
 ```java
-@AnnotationAttribute("id")
-    int id;
-    
-    @AnnotationAttribute("nom")
-    String nom;
-    
-    @AnnotationAttribute("age")
-    int age;
+@Url(lien="/save_employe")
+    public ModelView save(@Annotations.AnnotationParameter("id") int id,@Annotations.AnnotationParameter("nom") String nom,@Annotations.AnnotationParameter("age") int age){
+        ModelView mv = new ModelView();
+        mv.setView("saveEmp.jsp");
+
+        return mv;
+    }
 ```
 
-Les valeurs des annotation doit etre comme celle des name des input
+les name des input doit etre comme celle des parametre annoter
 
 ```html
 <form action="save_employer" method="post">
@@ -138,15 +137,56 @@ Les valeurs des annotation doit etre comme celle des name des input
  </form>
 ```
 
+pour recuperer les valeurs
+
+```jsp
+<%
+    <%= request.getParameter("id") %>
+    <%= request.getParameter("nom") %>
+    <%= request.getParameter("age") %>
+%>
+```
+
+### Spring 7 Get Valeurs des Formulaire Avec Objet
+
+Mettre directement l'objet sur le parametre
+
 ```java
-        dans la url save_employer
-        @Url(lien="/save_employer")
-    public ModelView save(){
+@Url(lien="/saves_employer")
+    public ModelView saves(@Annotations.AnnotationParameter("employer") Emp emp){
         ModelView mv = new ModelView();
         mv.setView("saveEmp.jsp");
-        mv.addItem("employer",this);
+        mv.addItem("employer", emp);
         return mv;
     }
+```
+
+les name des input doit etre comme l'exemple suivante ajouter le nom de l'objet dans l'annotation avant le name et ajouter de
+. puis les attribut
+
+```html
+<form action="saves_employer" method="post">
+  Id : <input type="number" name="employer.id">
+  Nom : <input type="text" name="employer.nom">
+  age : <input type="number" name="employer.age">
+  <input type="submit" value="Valider">
+ </form>
+```
+
+pour recuperer les valeurs
+
+```jsp
+<%
+    Emp emp = (Emp) request.getAttribute("employer");
+%>
+```
+
+```jsp
+<%
+    <%= emp.getId() %>
+    <%= emp.getNom() %>
+    <%= emp.getAge() %>
+%>
 ```
 
 En suivant ces étapes, vous pourrez configurer et utiliser le Framework 2802 efficacement

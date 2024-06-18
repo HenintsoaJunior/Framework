@@ -3,6 +3,7 @@ package etu2802;
 public class Mapping {
     String className;
     String method;
+    private Class[] parameterTypes;
 
     public Mapping(){
         
@@ -26,6 +27,14 @@ public class Mapping {
 
     public void setMethod(String method) {
         this.method = method;
+    }
+
+    public Class[] getParameterTypes() {
+        return parameterTypes;
+    }
+
+    public void setParameterTypes(Class[] parameterTypes) {
+        this.parameterTypes = parameterTypes;
     }
     
     

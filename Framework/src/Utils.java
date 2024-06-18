@@ -3,7 +3,10 @@ package etu2802;
 import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.sql.Date;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -89,61 +92,35 @@ public class Utils {
     }
     
     
-    public static void dispatchModelView(HttpServletRequest request, HttpServletResponse response, Object object, String mappingUrlKey,HashMap<String, Mapping> mappingUrls) throws Exception {
+    public static void dispatchModelView(HttpServletRequest request, HttpServletResponse response, Object object, String mappingUrlKey, HashMap<String, Mapping> mappingUrls) throws Exception {
         PrintWriter out = response.getWriter();
-        Method method = getMethodByUrl(object, mappingUrlKey,mappingUrls);
-        Object returnValue = method.invoke(object);
-
-        if (returnValue instanceof String) {
-            out.println("La valeur retournée : " + returnValue);
-        } else if (returnValue instanceof ModelView) {
-            ModelView mv = (ModelView) returnValue;
-            for (String mvKey : mv.getData().keySet()) {
-                request.setAttribute(mvKey, mv.getData().get(mvKey));
-                out.println("id" +request.getParameter("id"));
-                out.println("nom" +request.getParameter("nom"));
-                out.println("age" +request.getParameter("age"));
-            
-            }
-
-            RequestDispatcher dispatcher = request.getRequestDispatcher(mv.getView());
-            dispatcher.forward(request, response);
-        } else {
-            out.println("Unsupport type");
-            throw new IllegalArgumentException("Unsupport type");
-
-        }
-    }
-
-
-    public static void setObject(HttpServletRequest request, HttpServletResponse response, Object objet) throws Exception {
-        Field[] attributs = objet.getClass().getDeclaredFields();
-
-        for (Field field : attributs) {
-            if (field.isAnnotationPresent(AnnotationAttribute.class)) {
-                AnnotationAttribute annotation = field.getAnnotation(AnnotationAttribute.class);
-                String fieldName = annotation.value();
-        
-                String[] parameter = request.getParameterValues(fieldName);
-                if (parameter != null && parameter.length > 0) {
-                    System.out.println("Contenu du tableau pour le champ " + fieldName + ":");
-                    for (String value : parameter) {
-                        System.out.println(value);
-                    }
-        
-                    field.setAccessible(true);
-                    Class<?> fieldType = field.getType();
-                    if (fieldType.equals(int.class)) {
-                        field.setInt(objet, Integer.parseInt(parameter[0]));
-                    } else if (fieldType.equals(String.class)) {
-                        field.set(objet, parameter[0]);
-                    } else if (fieldType.equals(double.class)) {
-                        field.setDouble(objet, Double.parseDouble(parameter[0]));
-                    }
+        try {
+            Method method = getMethodByUrl(object, mappingUrlKey, mappingUrls);
+            Object[] obj = getMethodParams(method, request);
+            Object returnValue = method.invoke(object, obj);
+    
+            if (returnValue instanceof String) {
+                out.println("La valeur retournée : " + returnValue);
+            } else if (returnValue instanceof ModelView) {
+                ModelView mv = (ModelView) returnValue;
+                for (String mvKey : mv.getData().keySet()) {
+                    request.setAttribute(mvKey, mv.getData().get(mvKey));
+                    out.println("id" + request.getParameter("id"));
+                    out.println("nom" + request.getParameter("nom"));
+                    out.println("age" + request.getParameter("age"));
                 }
+    
+                RequestDispatcher dispatcher = request.getRequestDispatcher(mv.getView());
+                dispatcher.forward(request, response);
+            } else {
+                out.println("Unsupport type");
+                throw new IllegalArgumentException("Unsupport type");
             }
+        } catch (Exception e) {
+            // Gérer l'exception ici
+            out.println("Une erreur s'est produite : " + e.getMessage());
+            e.printStackTrace(); // À des fins de débogage, peut être supprimé en production
         }
-        
     }
     
 
@@ -174,110 +151,67 @@ public class Utils {
         throw new IllegalArgumentException("URL not found");
     }
     
+    public static Object[] getMethodParams(Method method, HttpServletRequest request) throws IllegalArgumentException {
+        Parameter[] parameters = method.getParameters();
+        Object[] methodParams = new Object[parameters.length];
 
-        // public static void setObject(HttpServletRequest request, HttpServletResponse response, Object objet) throws Exception {
-    //     Field[] attributs = objet.getClass().getDeclaredFields();
-    //     String[] setters = new String[attributs.length];
-    
-    //     for (int i = 0; i < attributs.length; i++) {
-    //         setters[i] = "set" + attributs[i].getName().substring(0, 1).toUpperCase() + attributs[i].getName().substring(1);
-    //     }
-    
-    //     for (int i = 0; i < attributs.length; i++) {
-    //         Method set = objet.getClass().getDeclaredMethod(setters[i], attributs[i].getType());
-    
-    //         String[] parameter = request.getParameterValues(attributs[i].getName());
-    //         if (parameter != null) {
-    //             set.invoke(objet, castStringToType(parameter, attributs[i].getType()));
-    //         }
-    //     }
-    // }
+        for (int i = 0; i < parameters.length; i++) {
+            String paramName = "";
+            if (parameters[i].isAnnotationPresent(Annotations.AnnotationParameter.class)) {
+                paramName = parameters[i].getAnnotation(Annotations.AnnotationParameter.class).value();
+            } else {
+                paramName = parameters[i].getName();
+            }
 
+            Class<?> paramType = parameters[i].getType();
 
-    // public static void setObject(HttpServletRequest request, HttpServletResponse response, Object objet) throws Exception {
-    //     Field[] attributs = objet.getClass().getDeclaredFields();
+            // Si le type du paramètre est un objet complexe (non primitif et non String)
+            if (!paramType.isPrimitive() && !paramType.equals(String.class)) {
+                try {
+                    Object paramObject = paramType.getDeclaredConstructor().newInstance();
+                    Field[] fields = paramType.getDeclaredFields();
+                    
+                    for (Field field : fields) {
+                        String fieldName = field.getName();
+                        String fieldValue = request.getParameter(paramName + "." + fieldName);
+                        if (fieldValue != null) {
+                            field.setAccessible(true);
+                            Object typedValue = typage(fieldValue, fieldName, field.getType());
+                            field.set(paramObject, typedValue);
+                        }
+                    }
+                    methodParams[i] = paramObject;
+                } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                    throw new IllegalArgumentException("Error creating parameter object: " + paramName, e);
+                }
+            } else {
+                String paramValue = request.getParameter(paramName);
+                if (paramValue == null) {
+                    throw new IllegalArgumentException("Missing parameter: " + paramName);
+                }
+                methodParams[i] = typage(paramValue, paramName, paramType);
+            }
+        }
+        return methodParams;
+    }
 
-    //     for (Field field : attributs) {
-    //         if (field.isAnnotationPresent(AnnotationAttribute.class)) {
-    //             AnnotationAttribute annotation = field.getAnnotation(AnnotationAttribute.class);
-    //             String fieldName = annotation.value();
-    //             String setterName = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
-
-    //             Method set = objet.getClass().getDeclaredMethod(setterName, field.getType());
-
-    //             String[] parameter = request.getParameterValues(fieldName);
-    //             if (parameter != null) {
-    //                 set.invoke(objet, castStringToType(parameter, field.getType()));
-    //             }
-    //         }
-    //     }
-    // }
-
-
-    
-    // public static <T> T castStringToType(String[] value, Class<T> type) {
-    //     if(value==null){
-    //         return null;
-    //     }
-    //     if(!type.isArray()){
-    //         if (type == String.class) {
-    //             return (T) value[0];
-    //         } else if (type == Integer.class || type == int.class) {
-    //             return (T) Integer.valueOf(value[0]);
-    //         } else if (type == Double.class || type == double.class) {
-    //             return (T) Double.valueOf(value[0]);
-    //         } else if (type == Float.class || type == float.class) {
-    //             return (T) Float.valueOf(value[0]);
-    //         } else if (type == Boolean.class || type == boolean.class) {
-    //             return (T) Boolean.valueOf(value[0]);
-    //         } else if (type == Date.class) {
-    //             return (T) Date.valueOf(value[0]);
-    //         } else {
-    //             throw new IllegalArgumentException("Unsupported type: " + type.getName());
-    //         }
-    //     }else{
-    //         if (type == String[].class) {
-    //             return (T) value;
-    //         } else if (type == Integer[].class) {
-    //             Integer[] tab = new Integer[value.length];
-    //             for (int i = 0; i < value.length; i++) {
-    //                 tab[i] = Integer.valueOf(value[i]);
-    //             }
-    //             return (T) tab;
-    //         } else if (type == Double[].class) {
-    //             Double[] tab = new Double[value.length];
-    //             for (int i = 0; i < value.length; i++) {
-    //                 tab[i] = Double.valueOf(value[i]);
-    //             }
-    //             return (T) tab;
-    //         } else if (type == Float[].class) {
-    //             Float[] tab = new Float[value.length];
-    //             for (int i = 0; i < value.length; i++) {
-    //                 tab[i] = Float.valueOf(value[i]);
-    //             }
-    //             return (T) tab;
-    //         } else if(type == int[].class){
-    //             int[] tab = new int[value.length];
-    //             for (int i = 0; i < value.length; i++) {
-    //                 tab[i] = Integer.valueOf(value[i]);
-    //             }
-    //             return (T) tab;
-    //         }else if( type == double[].class){
-    //             double[] tab = new double[value.length];
-    //             for (int i = 0; i < value.length; i++) {
-    //                 tab[i] = Double.valueOf(value[i]);
-    //             }
-    //             return (T) tab;
-    //         }else if(type == float[].class){
-    //             float[] tab = new float[value.length];
-    //             for (int i = 0; i < value.length; i++) {
-    //                 tab[i] = Float.valueOf(value[i]);
-    //             }
-    //             return (T) tab;
-    //         }else {
-    //             throw new IllegalArgumentException("Unsupported type: " + type.getName());
-    //         }
-    //     }
-    // }
-
+    public static Object typage(String paramValue ,String paramName, Class paramType){
+        Object o = null ;
+        if (paramType == Date.class || paramType == java.sql.Date.class) {
+            try {
+                o = java.sql.Date.valueOf(paramValue);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid date format for parameter: " + paramName);
+            }
+        } else if (paramType == int.class) {
+            o = Integer.parseInt(paramValue);
+        } else if (paramType == double.class) {
+            o = Double.parseDouble(paramValue);
+        } else if (paramType == boolean.class) {
+            o =Boolean.parseBoolean(paramValue);
+        } else {
+            o = paramValue; 
+        }
+        return o;
+    }
 }
