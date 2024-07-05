@@ -27,7 +27,6 @@ public class Utils {
         }
     }
 
-
     public static Method getMethodByUrl(Object objet, String mappingUrlkey,HashMap<String, Mapping> mappingUrls) throws Exception {
         Method[] all_methods = objet.getClass().getDeclaredMethods();
         for (int i = 0; i < all_methods.length; i++) {
@@ -96,7 +95,7 @@ public class Utils {
         PrintWriter out = response.getWriter();
         try {
             Method method = getMethodByUrl(object, mappingUrlKey, mappingUrls);
-            Object[] obj = getMethodParams(method, request);
+            Object[] obj = getMethodParams(method, request,object);
             Object returnValue = method.invoke(object, obj);
     
             if (returnValue instanceof String) {
@@ -151,26 +150,35 @@ public class Utils {
         throw new IllegalArgumentException("URL not found");
     }
     
-    public static Object[] getMethodParams(Method method, HttpServletRequest request) throws IllegalArgumentException {
+    public static Object[] getMethodParams(Method method, HttpServletRequest request, Object instance) throws IllegalArgumentException {
         Parameter[] parameters = method.getParameters();
         Object[] methodParams = new Object[parameters.length];
 
+        boolean sessionParameterFound = false;
+
         for (int i = 0; i < parameters.length; i++) {
-            String paramName = "";
+            Class<?> paramType = parameters[i].getType();
+
+            if (paramType.equals(MySession.class)) {
+                methodParams[i] = new MySession(request.getSession());
+                sessionParameterFound = true;
+                continue;
+            }
+
+            String paramName;
             if (parameters[i].isAnnotationPresent(Annotations.AnnotationParameter.class)) {
                 paramName = parameters[i].getAnnotation(Annotations.AnnotationParameter.class).value();
+            } else if (parameters[i].isAnnotationPresent(Annotations.AnnotationAttribute.class)) {
+                paramName = parameters[i].getAnnotation(Annotations.AnnotationAttribute.class).value();
             } else {
                 paramName = parameters[i].getName();
             }
 
-            Class<?> paramType = parameters[i].getType();
-
-            // Si le type du paramètre est un objet complexe (non primitif et non String)
             if (!paramType.isPrimitive() && !paramType.equals(String.class)) {
                 try {
                     Object paramObject = paramType.getDeclaredConstructor().newInstance();
                     Field[] fields = paramType.getDeclaredFields();
-                    
+
                     for (Field field : fields) {
                         String fieldName = field.getName();
                         String fieldValue = request.getParameter(paramName + "." + fieldName);
@@ -187,14 +195,39 @@ public class Utils {
             } else {
                 String paramValue = request.getParameter(paramName);
                 if (paramValue == null) {
-                    throw new IllegalArgumentException("Missing parameter: " + paramName);
+                    throw new IllegalArgumentException("ETU002802 Erreur Annotation n'existe pas");
                 }
                 methodParams[i] = typage(paramValue, paramName, paramType);
             }
         }
+
+        if (!sessionParameterFound) {
+            try {
+                Field sessionField = findFieldOfType(instance.getClass(), MySession.class);
+                if (sessionField != null) {
+                    sessionField.setAccessible(true);
+                    MySession mySession = (MySession) sessionField.get(instance);
+                    if (mySession == null) {
+                        mySession = new MySession(request.getSession());
+                        sessionField.set(instance, mySession);
+                    }
+                }
+            } catch (IllegalAccessException e) {
+                throw new IllegalArgumentException("Error accessing MySession field in the class", e);
+            }
+        }
+
         return methodParams;
     }
-
+    private static Field findFieldOfType(Class<?> clazz, Class<?> fieldType) {
+        for (Field field : clazz.getDeclaredFields()) {
+            if (field.getType().equals(fieldType)) {
+                return field;
+            }
+        }
+        return null;
+    }
+    
     public static Object typage(String paramValue ,String paramName, Class paramType){
         Object o = null ;
         if (paramType == Date.class || paramType == java.sql.Date.class) {
@@ -209,8 +242,10 @@ public class Utils {
             o = Double.parseDouble(paramValue);
         } else if (paramType == boolean.class) {
             o =Boolean.parseBoolean(paramValue);
+        }else if (paramType == Date.class) {
+            o = Date.valueOf(paramValue);
         } else {
-            o = paramValue; 
+            o = paramValue;
         }
         return o;
     }

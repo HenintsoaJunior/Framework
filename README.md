@@ -189,4 +189,90 @@ pour recuperer les valeurs
 %>
 ```
 
+### Spring 8 session
+
+Pour utiliser le session il y deux facon
+
+Premierement creation d'une session au niveau attribut
+
+```java
+MySession session
+```
+
+example de code pour faire une autentification et logout
+
+```java
+@Url(lien="/login")
+    public ModelView login(@Annotations.AnnotationParameter("identifiant") String identifiant, @Annotations.AnnotationParameter("motdepasse") String motDePasse) {
+        List<Emp> allEmps = getAllEmps();
+
+        List<Emp> matchedEmps = new ArrayList<>();
+        for (Emp emp : allEmps) {
+            if (emp.getNom().equals(identifiant) && motDePasse.equals("123")) {
+                matchedEmps.add(emp);
+            }
+        }
+
+        if (!matchedEmps.isEmpty()) {
+            this.session.add("users", matchedEmps);
+            ModelView mv = new ModelView();
+            mv.setView("dataList.jsp");
+            return mv;
+        } else {
+            ModelView mv = new ModelView();
+            mv.setView("login.jsp");
+            mv.addItem("error", "Identifiant ou mot de passe incorrect");
+            return mv;
+        }
+    }
+
+
+    @Url(lien="/logout")
+    public ModelView logout() {
+        this.session.delete("users");
+
+        ModelView mv = new ModelView();
+        mv.setView("login.jsp");
+        return mv;
+    }
+```
+
+deuxiement creation d'une session au niveau methode
+
+```java
+@Url(lien="/login")
+    public ModelView login(@Annotations.AnnotationParameter("identifiant") String identifiant, @Annotations.AnnotationParameter("motdepasse") String motDePasse,MySession session) {
+        List<Emp> allEmps = getAllEmps();
+
+        List<Emp> matchedEmps = new ArrayList<>();
+        for (Emp emp : allEmps) {
+            if (emp.getNom().equals(identifiant) && motDePasse.equals("123")) {
+                matchedEmps.add(emp);
+            }
+        }
+
+        if (!matchedEmps.isEmpty()) {
+            session.add("users", matchedEmps);
+            ModelView mv = new ModelView();
+            mv.setView("dataList.jsp");
+            return mv;
+        } else {
+            ModelView mv = new ModelView();
+            mv.setView("login.jsp");
+            mv.addItem("error", "Identifiant ou mot de passe incorrect");
+            return mv;
+        }
+    }
+
+
+    @Url(lien="/logout")
+    public ModelView logout(MySession session) {
+        session.delete("users");
+
+        ModelView mv = new ModelView();
+        mv.setView("login.jsp");
+        return mv;
+    }
+```
+
 En suivant ces étapes, vous pourrez configurer et utiliser le Framework 2802 efficacement
