@@ -46,7 +46,6 @@ public class FrontController extends HttpServlet {
             try {
                 Mapping map = mappingUrls.get(url);
     
-                out.println("URL: " + url + " -> Controller: " + map.getClassName() + ", Method: " + map.getMethod());
                 try {
                     String packageNames = this.getInitParameter("package");
                     String[] packages = packageNames.split(",");
@@ -59,10 +58,6 @@ public class FrontController extends HttpServlet {
                         try {
                             Class<?> clazz = Class.forName(fullClassName);
                             Object object = clazz.newInstance();
-    
-                            request.getParameterMap().forEach((key, values) -> {
-                                out.println("Parameter Name: " + key + ", Value: " + String.join(", ", values));
-                            });
     
                             Utils.dispatchModelView(request, response, object, url, mappingUrls);
                             foundClass = true;

@@ -23,4 +23,9 @@ public class Annotations {
     public @interface AnnotationParameter {
         String value(); 
     }
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface Restapi {
+        String value() default "";
+    }
 }

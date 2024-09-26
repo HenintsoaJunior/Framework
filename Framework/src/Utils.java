@@ -8,12 +8,16 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.sql.Date;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import com.google.gson.Gson;
+
 
 public class Utils {
     
@@ -92,37 +96,49 @@ public class Utils {
     
     
     public static void dispatchModelView(HttpServletRequest request, HttpServletResponse response, Object object, String mappingUrlKey, HashMap<String, Mapping> mappingUrls) throws Exception {
+        response.setContentType("application/json");
         PrintWriter out = response.getWriter();
+        
         try {
             Method method = getMethodByUrl(object, mappingUrlKey, mappingUrls);
-            Object[] obj = getMethodParams(method, request,object);
+            Object[] obj = getMethodParams(method, request, object);
             Object returnValue = method.invoke(object, obj);
     
-            if (returnValue instanceof String) {
-                out.println("La valeur retournée : " + returnValue);
-            } else if (returnValue instanceof ModelView) {
-                ModelView mv = (ModelView) returnValue;
-                for (String mvKey : mv.getData().keySet()) {
-                    request.setAttribute(mvKey, mv.getData().get(mvKey));
-                    out.println("id" + request.getParameter("id"));
-                    out.println("nom" + request.getParameter("nom"));
-                    out.println("age" + request.getParameter("age"));
-                }
+            // Vérifier si la méthode est annotée avec @Restapi
+            if (method.isAnnotationPresent(Annotations.Restapi.class)) {
+                if (returnValue instanceof ModelView) {
+                    Map<String, Object> jsonResponse = new HashMap<>();
+                    for (int i = 0; i < obj.length; i++) {
+                        String paramName = method.getParameters()[i].getAnnotation(Annotations.AnnotationParameter.class).value();
+                        jsonResponse.put(paramName, obj[i]); // Ajoute le paramètre au JSON
+                    }
     
-                RequestDispatcher dispatcher = request.getRequestDispatcher(mv.getView());
-                dispatcher.forward(request, response);
+                    String jsonResponseString = new Gson().toJson(jsonResponse);
+                    out.println(jsonResponseString);
+                } else {
+                    String jsonResponse = new Gson().toJson(returnValue);
+                    out.println(jsonResponse);
+                }
             } else {
-                out.println("Unsupport type");
-                throw new IllegalArgumentException("Unsupport type");
+                // Gestion normale pour les non-REST API
+                if (returnValue instanceof ModelView) {
+                    ModelView mv = (ModelView) returnValue;
+                    request.setAttribute("data", mv.getData());
+                    RequestDispatcher dispatcher = request.getRequestDispatcher(mv.getView());
+                    dispatcher.forward(request, response);
+                } else {
+                    out.println("Unsupported type");
+                    throw new IllegalArgumentException("Unsupported type");
+                }
             }
         } catch (Exception e) {
-            // Gérer l'exception ici
-            out.println("Une erreur s'est produite : " + e.getMessage());
-            e.printStackTrace(); // À des fins de débogage, peut être supprimé en production
+            out.println("{\"error\": \"" + e.getMessage() + "\"}");
+            e.printStackTrace();
+        } finally {
+            out.close();
         }
     }
     
-
 
     public static void generateNotFoundPage(PrintWriter out) {
         out.println("<!DOCTYPE html>");
