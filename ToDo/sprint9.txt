@@ -1,3 +1,6 @@
+Objectif
+return HTTP(BODY une reponse JSON)
+-Creer class Annotation (Restapi)
 package etu2802;
 
 import java.lang.annotation.ElementType;
@@ -24,8 +27,30 @@ public class Annotations {
         String value(); 
     }
     @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.METHOD)
+    @Target(ElementType.PARAMETER)
     public @interface Restapi {
-        String value() default "";
+        String value();
     }
 }
+
+voici l'annotation rest api
+
+@Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.PARAMETER)
+    public @interface Restapi {
+        String value();
+    }
+
+
+cote developer fonction list employee il faut l'annoter en restApi
+@Url(lien="/listEmp")
+    public List<Emp> getAllEmps() {
+        List<Emp> emps = new ArrayList<>();
+        emps.add(new Emp(1, "dax", 30));
+        emps.add(new Emp(2, "alex", 25));
+        emps.add(new Emp(3, "dax", 28));
+        return emps;
+    }
+    
+List Employee (Annote avec une URL)
+On peut ajouter une annotation REST API
