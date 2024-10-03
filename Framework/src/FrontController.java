@@ -55,27 +55,31 @@ public class FrontController extends HttpServlet {
                         packageName = packageName.trim();
     
                         String fullClassName = packageName + "." + map.getClassName();
+                        System.out.println("full class Nale " +fullClassName);
                         try {
                             Class<?> clazz = Class.forName(fullClassName);
                             Object object = clazz.newInstance();
     
                             Utils.dispatchModelView(request, response, object, url, mappingUrls);
                             foundClass = true;
+                            System.out.println("fond class "+foundClass);
                         } catch (ClassNotFoundException e) {
                             e.printStackTrace();
                         }
                     }
     
                     if (!foundClass) {
-                        Utils.generateNotFoundPage(out);
+                        System.out.println("VOus etes ici");
+                        // Utils.generateNotFoundPage(out);
                     }
                 } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
                     out.println("Erreur lors de l'invocation de la méthode : " + e.getMessage());
                     e.printStackTrace();
                 }
             } catch (Exception e) {
-                Utils.generateNotFoundPage(out);
+                // Utils.generateNotFoundPage(out);
                 e.printStackTrace();
+                out.println(e.getMessage());
             }
         }
     }
