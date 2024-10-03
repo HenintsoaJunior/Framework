@@ -275,4 +275,80 @@ deuxiement creation d'une session au niveau methode
     }
 ```
 
+### Spring 9 Reponse JSON
+
+Si vous voulez returner une reponse JSON il faut annoter votre Methode en REST API
+
+```java
+@Restapi
+```
+
+voici une example de code
+
+```java
+    @GET(lien="/listEmp")
+    @Annotations.Restapi
+    public List<Emp> getAllEmps() {
+        List<Emp> emps = new ArrayList<>();
+        emps.add(new Emp(1, "dax", 30));
+        emps.add(new Emp(2, "alex", 25));
+        emps.add(new Emp(3, "dax", 28));
+        return emps;
+    }
+
+```
+
+### Spring 10 Utilisation de POST et GET
+
+```java
+    @URL(lien="/login")
+    @Annotations.POST
+```
+
+```java
+    @URL(lien="/listEmp")
+    @Annotations.GET
+```
+
+Voici une example Concret
+
+```java
+    @URL(lien="/login")
+    @Annotations.POST
+    public ModelView login(@Annotations.AnnotationParameter("identifiant") String identifiant, @Annotations.AnnotationParameter("motdepasse") String motDePasse) {
+        List<Emp> allEmps = getAllEmps();
+
+        List<Emp> matchedEmps = new ArrayList<>();
+        for (Emp emp : allEmps) {
+            if (emp.getNom().equals(identifiant) && motDePasse.equals("123")) {
+                matchedEmps.add(emp);
+            }
+        }
+
+        if (!matchedEmps.isEmpty()) {
+            this.session.add("users", matchedEmps);
+            ModelView mv = new ModelView();
+            mv.setView("dataList.jsp");
+            return mv;
+        } else {
+            ModelView mv = new ModelView();
+            mv.setView("login.jsp");
+            mv.addItem("error", "Identifiant ou mot de passe incorrect");
+            return mv;
+        }
+    }
+
+    @URL(lien="/listEmp")
+    @Annotations.GET
+    @Annotations.Restapi
+    public List<Emp> getAllEmps() {
+        List<Emp> emps = new ArrayList<>();
+        emps.add(new Emp(1, "dax", 30));
+        emps.add(new Emp(2, "alex", 25));
+        emps.add(new Emp(3, "dax", 28));
+        return emps;
+    }
+    
+```
+
 En suivant ces étapes, vous pourrez configurer et utiliser le Framework 2802 efficacement

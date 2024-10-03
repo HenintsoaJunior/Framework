@@ -6,7 +6,7 @@
 <body>
 <h2>Login</h2>
 
-<form action="login" method="post">
+<form action="login" method="POST">
     Identifiant: <input type="text" name="identifiant"><br>
     Mot de passe: <input type="text" name="motdepasse"><br>
     <input type="submit" value="Se connecter">

@@ -1,7 +1,6 @@
 package etu2802;
 
 import java.io.PrintWriter;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -18,6 +17,10 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.google.gson.Gson;
 
+import etu2802.Annotations.GET;
+import etu2802.Annotations.POST;
+import etu2802.Annotations.URL;
+
 
 public class Utils {
     
@@ -31,35 +34,51 @@ public class Utils {
         }
     }
 
-    public static Method getMethodByUrl(Object objet, String mappingUrlkey,HashMap<String, Mapping> mappingUrls) throws Exception {
-        Method[] all_methods = objet.getClass().getDeclaredMethods();
-        for (int i = 0; i < all_methods.length; i++) {
-            Annotation[] annotations = all_methods[i].getAnnotations();
-            for (int j = 0; j < annotations.length; j++) {
-                if (annotations[j].annotationType() == Url.class) {
-                    Url url = (Url) annotations[j];
-                    if (url.lien().compareTo(mappingUrlkey) == 0 && all_methods[i].getName().compareTo(mappingUrls.get(mappingUrlkey).getMethod()) == 0) {
-                        return all_methods[i];
+    public static Method getMethodByUrl(Object objet, String mappingUrlKey, HashMap<String, Mapping> mappingUrls, String httpMethod) throws Exception {
+        Method[] allMethods = objet.getClass().getDeclaredMethods();
+    
+        for (Method method : allMethods) {
+            if (method.isAnnotationPresent(URL.class)) {
+                URL url = method.getAnnotation(URL.class);
+                if (url.lien().equals(mappingUrlKey)) {
+                    // Vérifier la présence d'annotations @GET ou @POST
+                    boolean hasGET = method.isAnnotationPresent(GET.class);
+                    boolean hasPOST = method.isAnnotationPresent(POST.class);
+    
+                    if (hasGET && hasPOST) {
+                        throw new Exception("La méthode " + method.getName() + " ne doit avoir que @GET ou @POST, mais pas les deux.");
                     }
+    
+                    if (httpMethod.equals("GET")) {
+                        if (hasGET || (!hasGET && !hasPOST)) {
+                            return method;
+                        }
+                    } else if (httpMethod.equals("POST")) {
+                        if (hasPOST) {
+                            return method;
+                        }
+                    }
+    
+                    throw new Exception("Méthode HTTP non supportée pour cette URL : " + mappingUrlKey);
                 }
             }
         }
-        throw new Exception("Method not found");
-
+    
+        throw new Exception("Aucune méthode trouvée pour l'URL donnée et la méthode HTTP");
     }
-
+    
+    
 
     public static HashMap<String, Mapping> allMappingUrls(ServletContext context, String packageNames) {
         HashMap<String, Mapping> mappingUrl = new HashMap<>();
-        
+
         String[] packages = packageNames.split(",");
-        
+
         for (String packageName : packages) {
             packageName = packageName.trim();
             checkPackageExists(packageName, context);
-    
+
             String path = "/WEB-INF/classes/" + packageName.replace('.', '/');
-    
             Set<String> classNames = context.getResourcePaths(path);
             if (classNames != null) {
                 for (String className : classNames) {
@@ -67,9 +86,19 @@ public class Utils {
                         String fullClassName = packageName + "." + className.substring(path.length() + 1, className.length() - 6).replace('/', '.');
                         try {
                             Class<?> myClass = Class.forName(fullClassName);
+
                             for (Method method : myClass.getDeclaredMethods()) {
-                                if (method.isAnnotationPresent(Url.class)) {
-                                    Url url = method.getAnnotation(Url.class);
+                                if (method.isAnnotationPresent(URL.class)) {
+                                    URL url = method.getAnnotation(URL.class);
+
+                                    // Vérification qu'une seule annotation @GET ou @POST est présente
+                                    boolean hasGET = method.isAnnotationPresent(GET.class);
+                                    boolean hasPOST = method.isAnnotationPresent(POST.class);
+
+                                    if (hasGET && hasPOST) {
+                                        throw new IllegalArgumentException("Method " + method.getName() + " cannot have both @GET and @POST annotations.");
+                                    }
+
                                     Mapping map = new Mapping(myClass.getSimpleName(), method.getName());
                                     if (mappingUrl.containsKey(url.lien())) {
                                         throw new IllegalArgumentException("Duplicate URL mapping found: " + url.lien());
@@ -86,33 +115,32 @@ public class Utils {
                 System.out.println("Classname Not found");
             }
         }
-    
+
         if (mappingUrl.isEmpty()) {
             throw new IllegalStateException("No URL mappings found.");
         }
-    
+
         return mappingUrl;
     }
-    
-    
+
+
     public static void dispatchModelView(HttpServletRequest request, HttpServletResponse response, Object object, String mappingUrlKey, HashMap<String, Mapping> mappingUrls) throws Exception {
         response.setContentType("application/json");
         PrintWriter out = response.getWriter();
-        
+
         try {
-            Method method = getMethodByUrl(object, mappingUrlKey, mappingUrls);
+            String httpMethod = request.getMethod();
+            Method method = getMethodByUrl(object, mappingUrlKey, mappingUrls, httpMethod);
             Object[] obj = getMethodParams(method, request, object);
             Object returnValue = method.invoke(object, obj);
-    
-            // Vérifier si la méthode est annotée avec @Restapi
+
             if (method.isAnnotationPresent(Annotations.Restapi.class)) {
                 if (returnValue instanceof ModelView) {
                     Map<String, Object> jsonResponse = new HashMap<>();
                     for (int i = 0; i < obj.length; i++) {
                         String paramName = method.getParameters()[i].getAnnotation(Annotations.AnnotationParameter.class).value();
-                        jsonResponse.put(paramName, obj[i]); // Ajoute le paramètre au JSON
+                        jsonResponse.put(paramName, obj[i]);
                     }
-    
                     String jsonResponseString = new Gson().toJson(jsonResponse);
                     out.println(jsonResponseString);
                 } else {
@@ -120,7 +148,6 @@ public class Utils {
                     out.println(jsonResponse);
                 }
             } else {
-                // Gestion normale pour les non-REST API
                 if (returnValue instanceof ModelView) {
                     ModelView mv = (ModelView) returnValue;
                     request.setAttribute("data", mv.getData());
@@ -138,7 +165,6 @@ public class Utils {
             out.close();
         }
     }
-    
 
     public static void generateNotFoundPage(PrintWriter out) {
         out.println("<!DOCTYPE html>");
