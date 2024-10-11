@@ -35,39 +35,55 @@ public class Utils {
     }
 
     public static Method getMethodByUrl(Object objet, String mappingUrlKey, HashMap<String, Mapping> mappingUrls, String httpMethod) throws Exception {
-        Method[] allMethods = objet.getClass().getDeclaredMethods();
+        System.out.println("Recherche de méthode pour URL: " + mappingUrlKey + ", Méthode HTTP: " + httpMethod);
+        
+        Mapping mapping = mappingUrls.get(mappingUrlKey);
+        if (mapping == null) {
+            System.out.println("Aucun mapping trouvé pour l'URL: " + mappingUrlKey);
+            throw new Exception("Aucun mapping trouvé pour l'URL donnée : " + mappingUrlKey);
+        }
+        
+        System.out.println("Mapping trouvé pour l'URL: " + mappingUrlKey);
+        System.out.println("Classe: " + mapping.getClassName());
+        
+        System.out.println("VerbActions associés:");
+        Set<VerbAction> verbActions = mapping.getVerbActions();
+        if (verbActions.isEmpty()) {
+            System.out.println("Aucun VerbAction trouvé. Utilisation de la méthode par défaut.");
+            throw new Exception("No VerbAction found for the given URL: " + mappingUrlKey);
+        }
+        
+        for (VerbAction verbAction : verbActions) {
+            System.out.println("  Method: " + verbAction.getMethod() + ", Verb: " + verbAction.getVerb());
+            Method method = findMethodByNameAndHttpMethod(objet.getClass(), verbAction.getMethod(), httpMethod);
+            if (method != null) {
+                System.out.println("Correspondance trouvée pour la méthode HTTP: " + httpMethod);
+                return method;
+            }
+        }
+        
+        System.out.println("Aucune correspondance trouvée pour la méthode HTTP: " + httpMethod);
+        throw new Exception("No matching method found for HTTP method: " + httpMethod);
+    }
     
-        for (Method method : allMethods) {
-            if (method.isAnnotationPresent(URL.class)) {
-                URL url = method.getAnnotation(URL.class);
-                if (url.lien().equals(mappingUrlKey)) {
-                    // Vérifier la présence d'annotations @GET ou @POST
-                    boolean hasGET = method.isAnnotationPresent(GET.class);
-                    boolean hasPOST = method.isAnnotationPresent(POST.class);
-    
-                    if (hasGET && hasPOST) {
-                        throw new Exception("La méthode " + method.getName() + " ne doit avoir que @GET ou @POST, mais pas les deux.");
+    private static Method findMethodByNameAndHttpMethod(Class<?> clazz, String methodName, String httpMethod) {
+        for (Method method : clazz.getDeclaredMethods()) {
+            if (method.getName().equals(methodName)) {
+                if (method.isAnnotationPresent(Annotations.GET.class) && httpMethod.equalsIgnoreCase("GET")) {
+                    return method;
+                }
+                if (method.isAnnotationPresent(Annotations.POST.class) && httpMethod.equalsIgnoreCase("POST")) {
+                    return method;
+                }
+                if (!method.isAnnotationPresent(Annotations.GET.class) && !method.isAnnotationPresent(Annotations.POST.class)) {
+                    if (httpMethod.equalsIgnoreCase("GET")) {
+                        return method;
                     }
-    
-                    if (httpMethod.equals("GET")) {
-                        if (hasGET || (!hasGET && !hasPOST)) {
-                            return method;
-                        }
-                    } else if (httpMethod.equals("POST")) {
-                        if (hasPOST) {
-                            return method;
-                        }
-                    }
-    
-                    throw new Exception("Méthode HTTP non supportée pour cette URL : " + mappingUrlKey);
                 }
             }
         }
-    
-        throw new Exception("Aucune méthode trouvée pour l'URL donnée et la méthode HTTP");
+        return null;
     }
-    
-    
 
     public static HashMap<String, Mapping> allMappingUrls(ServletContext context, String packageNames) {
         HashMap<String, Mapping> mappingUrl = new HashMap<>();
@@ -79,6 +95,7 @@ public class Utils {
             checkPackageExists(packageName, context);
 
             String path = "/WEB-INF/classes/" + packageName.replace('.', '/');
+            
             Set<String> classNames = context.getResourcePaths(path);
             if (classNames != null) {
                 for (String className : classNames) {
@@ -86,24 +103,33 @@ public class Utils {
                         String fullClassName = packageName + "." + className.substring(path.length() + 1, className.length() - 6).replace('/', '.');
                         try {
                             Class<?> myClass = Class.forName(fullClassName);
+                            System.out.println("Analysing class: " + myClass.getSimpleName());
 
                             for (Method method : myClass.getDeclaredMethods()) {
                                 if (method.isAnnotationPresent(URL.class)) {
                                     URL url = method.getAnnotation(URL.class);
-
-                                    // Vérification qu'une seule annotation @GET ou @POST est présente
-                                    boolean hasGET = method.isAnnotationPresent(GET.class);
-                                    boolean hasPOST = method.isAnnotationPresent(POST.class);
-
-                                    if (hasGET && hasPOST) {
-                                        throw new IllegalArgumentException("Method " + method.getName() + " cannot have both @GET and @POST annotations.");
+                                    System.out.println("Found URL annotation: " + url.lien() + " for method: " + method.getName());
+                    
+                                    Mapping map = mappingUrl.get(url.lien());
+                                    if (map == null) {
+                                        map = new Mapping(myClass.getSimpleName());
+                                        mappingUrl.put(url.lien(), map);
                                     }
-
-                                    Mapping map = new Mapping(myClass.getSimpleName(), method.getName());
-                                    if (mappingUrl.containsKey(url.lien())) {
-                                        throw new IllegalArgumentException("Duplicate URL mapping found: " + url.lien());
+                    
+                                    if (method.isAnnotationPresent(GET.class)) {
+                                        System.out.println("Adding GET VerbAction for method: " + method.getName());
+                                        map.addVerbAction(new VerbAction(method.getName(), "GET"));
                                     }
-                                    mappingUrl.put(url.lien(), map);
+                                    if (method.isAnnotationPresent(POST.class)) {
+                                        System.out.println("Adding POST VerbAction for method: " + method.getName());
+                                        map.addVerbAction(new VerbAction(method.getName(), "POST"));
+                                    }
+                                    
+                                    // Si aucune annotation HTTP n'est présente, ajouter GET par défaut
+                                    if (!method.isAnnotationPresent(GET.class) && !method.isAnnotationPresent(POST.class)) {
+                                        System.out.println("Adding default GET VerbAction for method: " + method.getName());
+                                        map.addVerbAction(new VerbAction(method.getName(), "GET"));
+                                    }
                                 }
                             }
                         } catch (ClassNotFoundException e) {
@@ -122,7 +148,6 @@ public class Utils {
 
         return mappingUrl;
     }
-
 
     public static void dispatchModelView(HttpServletRequest request, HttpServletResponse response, Object object, String mappingUrlKey, HashMap<String, Mapping> mappingUrls) throws Exception {
         response.setContentType("application/json");
