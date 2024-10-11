@@ -1,18 +1,21 @@
 package etu2802;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class Mapping {
-    String className;
-    String method;
-    private Class[] parameterTypes;
+    private String className;
+    private Set<VerbAction> verbActions;
 
-    public Mapping(){
-        
+    public Mapping() {
+        this.verbActions = new HashSet<>();
     }
 
-    public Mapping(String cl , String met){
+    public Mapping(String cl) {
         this.setClassName(cl);
-        this.setMethod(met);
+        this.verbActions = new HashSet<>();
     }
+
     public String getClassName() {
         return className;
     }
@@ -21,21 +24,15 @@ public class Mapping {
         this.className = className;
     }
 
-    public String getMethod() {
-        return method;
+    public Set<VerbAction> getVerbActions() {
+        return verbActions;
     }
 
-    public void setMethod(String method) {
-        this.method = method;
+    public void setVerbActions(Set<VerbAction> verbActions) {
+        this.verbActions = verbActions;
     }
 
-    public Class[] getParameterTypes() {
-        return parameterTypes;
+    public void addVerbAction(VerbAction verbAction) {
+        this.verbActions.add(verbAction);
     }
-
-    public void setParameterTypes(Class[] parameterTypes) {
-        this.parameterTypes = parameterTypes;
-    }
-    
-    
 }

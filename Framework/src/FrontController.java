@@ -45,6 +45,11 @@ public class FrontController extends HttpServlet {
     
             try {
                 Mapping map = mappingUrls.get(url);
+                if (map == null) {
+                    Utils.generateNotFoundPage(out);
+                    return;
+                }
+        
     
                 try {
                     String packageNames = this.getInitParameter("package");
@@ -70,7 +75,7 @@ public class FrontController extends HttpServlet {
     
                     if (!foundClass) {
                         System.out.println("VOus etes ici");
-                        // Utils.generateNotFoundPage(out);
+                        Utils.generateNotFoundPage(out);
                     }
                 } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
                     out.println("Erreur lors de l'invocation de la méthode : " + e.getMessage());
