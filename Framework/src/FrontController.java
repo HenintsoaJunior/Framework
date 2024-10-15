@@ -12,6 +12,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.jcp.xml.dsig.internal.dom.Utils;
+
 public class FrontController extends HttpServlet {
     private HashMap<String, Mapping> mappingUrls;
 
@@ -74,11 +76,9 @@ public class FrontController extends HttpServlet {
                     }
     
                     if (!foundClass) {
-                        System.out.println("VOus etes ici");
                         Utils.generateNotFoundPage(out);
                     }
                 } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-                    out.println("Erreur lors de l'invocation de la méthode : " + e.getMessage());
                     e.printStackTrace();
                 }
             } catch (Exception e) {

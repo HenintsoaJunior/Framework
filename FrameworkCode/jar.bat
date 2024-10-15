@@ -1,4 +1,4 @@
-cd src
+cd src/etu2802
 
 :: Chemin vers le dossier contenant les JAR
 set "lib=C:\Users\Henintsoa\Documents\github\S5\MrNaina\Framework\FrameworkCode\lib"

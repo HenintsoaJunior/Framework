@@ -118,12 +118,23 @@ public class Emp {
     }
     
     @URL(lien="/loginPage")
+    @Annotations.GET
     public ModelView loginPage(){
-        ModelView mv = new ModelView();
+       ModelView mv = new ModelView();
         mv.setView("login.jsp");
     
         return mv;
-    }
+    } 
+    
+    @URL(lien="/login")
+    @Annotations.GET
+    public ModelView login(){
+       ModelView mv = new ModelView();
+        mv.setView("login.jsp");
+    
+        return mv;
+    } 
+    
     
     @URL(lien="/login")
     @Annotations.POST
@@ -151,7 +162,6 @@ public class Emp {
     }
     
     @URL(lien="/listEmp")
-    @Annotations.GET
     @Annotations.Restapi
     public List<Emp> getAllEmps() {
         List<Emp> emps = new ArrayList<>();
@@ -162,6 +172,7 @@ public class Emp {
     }
     
     @URL(lien="/logout")
+    @Annotations.POST
     public ModelView logout(MySession session) {
         session.delete("users");
 
