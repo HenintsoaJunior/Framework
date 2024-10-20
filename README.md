@@ -351,4 +351,8 @@ Voici une example Concret
     
 ```
 
+### Spring 11 Gestion d'exeption de POST et GET
+
+GESTION D'erreur
+
 En suivant ces étapes, vous pourrez configurer et utiliser le Framework 2802 efficacement

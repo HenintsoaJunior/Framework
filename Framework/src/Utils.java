@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -295,25 +296,61 @@ public class Utils {
         return null;
     }
     
-    public static Object typage(String paramValue ,String paramName, Class paramType){
-        Object o = null ;
+    public static Object typage(String paramValue, String paramName, Class<?> paramType) {
+        if (paramValue == null || paramValue.isEmpty()) {
+            return setPrimitiveDefault(paramType);
+        }
+
+        if (paramType.isPrimitive() || paramType == String.class) {
+            return castStringToType(paramValue, paramType);
+        }
+
         if (paramType == Date.class || paramType == java.sql.Date.class) {
             try {
-                o = java.sql.Date.valueOf(paramValue);
+                return java.sql.Date.valueOf(paramValue);
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid date format for parameter: " + paramName);
             }
-        } else if (paramType == int.class) {
-            o = Integer.parseInt(paramValue);
-        } else if (paramType == double.class) {
-            o = Double.parseDouble(paramValue);
-        } else if (paramType == boolean.class) {
-            o =Boolean.parseBoolean(paramValue);
-        }else if (paramType == Date.class) {
-            o = Date.valueOf(paramValue);
-        } else {
-            o = paramValue;
         }
-        return o;
+
+        if (paramType == byte[].class) {
+            return convertToByteArray(paramValue);
+        }
+
+        if (paramType == FileUpload.class) {
+            FileUpload fichier = new FileUpload();
+            fichier.setName(paramValue);
+            return fichier;
+        }
+        throw new IllegalArgumentException("Unsupported type for parameter: " + paramName);
+    }
+
+    private static Object castStringToType(String value, Class<?> type) {
+        if (type == String.class) return value;
+        if (type == int.class || type == Integer.class) return Integer.parseInt(value);
+        if (type == long.class || type == Long.class) return Long.parseLong(value);
+        if (type == double.class || type == Double.class) return Double.parseDouble(value);
+        if (type == float.class || type == Float.class) return Float.parseFloat(value);
+        if (type == boolean.class || type == Boolean.class) return Boolean.parseBoolean(value);
+        if (type == byte.class || type == Byte.class) return Byte.parseByte(value);
+        if (type == short.class || type == Short.class) return Short.parseShort(value);
+        if (type == char.class || type == Character.class) return value.charAt(0);
+        throw new IllegalArgumentException("Unsupported primitive type: " + type.getName());
+    }
+
+    private static Object setPrimitiveDefault(Class<?> type) {
+        if (type == int.class) return 0;
+        if (type == long.class) return 0L;
+        if (type == double.class) return 0.0;
+        if (type == float.class) return 0.0f;
+        if (type == boolean.class) return false;
+        if (type == byte.class) return (byte) 0;
+        if (type == short.class) return (short) 0;
+        if (type == char.class) return '\u0000';
+        return null; // Pour les types non primitifs
+    }
+
+    private static byte[] convertToByteArray(String value) {
+        return value.getBytes(StandardCharsets.UTF_8);
     }
 }

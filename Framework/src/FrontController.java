@@ -74,11 +74,9 @@ public class FrontController extends HttpServlet {
                     }
     
                     if (!foundClass) {
-                        System.out.println("VOus etes ici");
                         Utils.generateNotFoundPage(out);
                     }
                 } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-                    out.println("Erreur lors de l'invocation de la méthode : " + e.getMessage());
                     e.printStackTrace();
                 }
             } catch (Exception e) {
@@ -88,7 +86,6 @@ public class FrontController extends HttpServlet {
             }
         }
     }
-    
     
     
     @Override
