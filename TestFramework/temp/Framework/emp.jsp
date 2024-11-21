@@ -1,11 +1,7 @@
-<%-- 
-    Document   : emp
-    Created on : 31 mai 2024, 13:16:00
-    Author     : Henintsoa
---%>
+<%@page import="java.util.List"%>
 <%@page import="modele.Emp"%>
 <% 
-    Emp[] list_emp = (Emp[])request.getAttribute("emp");
+    List<Emp> list_emp = (List<Emp>)request.getAttribute("emp");
 %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
@@ -42,11 +38,11 @@
                 </tr>
             </thead>
             <tbody>
-                <% for(int j = 0; j < list_emp.length; j++) { %>
+                <% for (Emp emp : list_emp) { %>
                 <tr>
-                    <td><%= list_emp[j].getId() %></td>
-                    <td><%= list_emp[j].getNom() %></td>
-                    <td><%= list_emp[j].getAge() %></td>
+                    <td><%= emp.getId() %></td>
+                    <td><%= emp.getNom() %></td>
+                    <td><%= emp.getAge() %></td>
                 </tr>
                 <% } %>
             </tbody>

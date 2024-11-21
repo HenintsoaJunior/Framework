@@ -1,7 +1,9 @@
+<%@page import="etu2802.FileUpload"%>
 <%@page import="modele.Emp"%>
 
 <% 
     Emp emp = (Emp) request.getAttribute("employer");
+    String image = request.getParameter("image");
 %>
 <!DOCTYPE html>
 <html>
@@ -13,9 +15,8 @@
 
 	<h5>Ajout Employer</h5>
 	<p>
-            <%= emp.getId() %>
-            <%= emp.getNom() %>
-            <%= emp.getAge() %>
+         
+            <%= image %>
             
     </p>
 </body>

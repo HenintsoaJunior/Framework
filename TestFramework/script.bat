@@ -3,7 +3,7 @@
 rem == commentaire
 
 rem Creation des variables
-set "webapps=E:\logiciel\tomcat\webapps"
+set "webapps=D:\Logiciel\Windows\wildfly-26.1.2.Final\standalone\deployments"
 set "nomAppli=Framework"
 set "temp=.\temp"
 set "src=.\src"

@@ -6,24 +6,14 @@
 </head>
 <body>
 	<h3>AnnotationVraie</h3>
-	<form action="AnnotationVraie" method="post">
+	<form action="save_employer" method="post">
 		Id : <input type="number" name="id">
 		Nom : <input type="text" name="nom">
 		age : <input type="number" name="age">
+                image : <input type="file" name="image">
 		<input type="submit" value="Valider">
 	</form>
         
-	<br>
-	<h3>AnnotationTss</h3>
-	<form action="AnnotationDiso" method="post">
-		Id : <input type="number" name="id">
-		Nom : <input type="text" name="nom">
-		age : <input type="number" name="age">
-		<input type="submit" value="Valider">
-	</form>
-        
-	<br>
-	
         <a href="emp">Liste Employer</a>
         
 </body>

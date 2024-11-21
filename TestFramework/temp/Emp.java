@@ -4,13 +4,17 @@
  */
 package modele;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import etu2802.Annotations;
+import etu2802.Annotations.Restapi;
+import etu2802.Annotations.URL;
+import etu2802.validation.ValidationManager;
+import etu2802.validation.ValidationManager.ValidationResult;
+import etu2802.FileUpload;
 import etu2802.ModelView;
 import etu2802.MySession;
-import etu2802.Url;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  *
@@ -21,11 +25,20 @@ public class Emp {
     @Annotations.AnnotationAttribute("id")
     int id;
     
+    @ValidationManager.Email
+    @ValidationManager.MaxLength(value = 85,message = "Max valeurs depasser")
+    @ValidationManager.Required(message = "Le nom est requis")
     @Annotations.AnnotationAttribute("nom")
     String nom;
     
+    @ValidationManager.MaxLength(value = 5,message = "Max valeurs depasser")
+    @ValidationManager.Numeric
     @Annotations.AnnotationAttribute("age")
     int age;
+    
+    @Annotations.AnnotationAttribute("image")
+    FileUpload image;
+ 
     
     MySession session;
     
@@ -62,6 +75,14 @@ public class Emp {
         this.age = age;
     }
 
+    public FileUpload getImage() {
+        return image;
+    }
+
+    public void setImage(FileUpload image) {
+        this.image = image;
+    }
+
     public MySession getSession() {
         return session;
     }
@@ -69,15 +90,13 @@ public class Emp {
     public void setSession(MySession session) {
         this.session = session;
     }
-    
-    
    
-    @Url(lien = "/example")
+    @URL(lien = "/example")
     public String example(){
         return "Example";
     }
     
-     @Url(lien="/AnnotationDiso")
+     @URL(lien="/AnnotationDiso")
     public ModelView AnnotationDiso(@Annotations.AnnotationParameter("id") String id,String nom,@Annotations.AnnotationParameter("age") int age){
         ModelView mv = new ModelView();
         mv.setView("test.jsp");
@@ -85,7 +104,7 @@ public class Emp {
         return mv;
     }
     
-    @Url(lien="/AnnotationVraie")
+    @URL(lien="/AnnotationVraie")
     public ModelView AnnotationVraie(@Annotations.AnnotationParameter("id") String id,@Annotations.AnnotationParameter("nom") String nom,@Annotations.AnnotationParameter("age") int age){
         ModelView mv = new ModelView();
         mv.setView("test.jsp");
@@ -93,7 +112,7 @@ public class Emp {
         return mv;
     }
     
-    @Url(lien="/lien")
+    @URL(lien="/lien")
     public ModelView saves(@Annotations.AnnotationParameter("employer") Emp emp){
         ModelView mv = new ModelView();
         mv.setView("saveEmp.jsp");
@@ -101,30 +120,41 @@ public class Emp {
         return mv;
     }
     
-    @Url(lien="/emp")
-    public ModelView emp(){
-        Emp[] list_emp = new Emp[4];
-        list_emp[0] = new Emp(1,"Emp 1",15);
-        list_emp[1] = new Emp(2,"Emp 2",16);
-        list_emp[2] = new Emp(3,"Emp 3",17);
-        list_emp[3] = new Emp(4,"Emp 4",18);
-        
-
+    @URL(lien="/emp")
+    public ModelView emp() {
+        List<Emp> emps = new ArrayList<>();
+        emps.add(new Emp(1, "dax", 30));
+        emps.add(new Emp(2, "alex", 25));
+        emps.add(new Emp(3, "dax", 28));
+        // Préparer la vue avec les employés
         ModelView mv = new ModelView();
-        mv.setView("emp.jsp");
-        mv.addItem("emp", list_emp);
-        return mv;
+        mv.addItem("emp", emps);  // Ajouter les employés à la vue sous l'attribut "emp"
+        mv.setView("emp.jsp");  // Définir la vue à utiliser
+        
+        return mv;  // Retourner l'objet ModelView
     }
     
-    @Url(lien="/loginPage")
+    @URL(lien="/loginPage")
+    @Annotations.GET
     public ModelView loginPage(){
-        ModelView mv = new ModelView();
+       ModelView mv = new ModelView();
         mv.setView("login.jsp");
     
         return mv;
-    }
+    } 
     
-    @Url(lien="/login")
+    @URL(lien="/login")
+    @Annotations.GET
+    public ModelView login(){
+       ModelView mv = new ModelView();
+        mv.setView("login.jsp");
+    
+        return mv;
+    } 
+    
+    @URL(lien="/login")
+    @Annotations.POST
+    @Restapi
     public ModelView login(@Annotations.AnnotationParameter("identifiant") String identifiant, @Annotations.AnnotationParameter("motdepasse") String motDePasse) {
         List<Emp> allEmps = getAllEmps();
 
@@ -148,6 +178,8 @@ public class Emp {
         }
     }
     
+    @URL(lien="/listEmp")
+    @Annotations.Restapi
     public List<Emp> getAllEmps() {
         List<Emp> emps = new ArrayList<>();
         emps.add(new Emp(1, "dax", 30));
@@ -156,7 +188,8 @@ public class Emp {
         return emps;
     }
     
-    @Url(lien="/logout")
+    @URL(lien="/logout")
+    @Annotations.POST
     public ModelView logout(MySession session) {
         session.delete("users");
 
@@ -165,11 +198,25 @@ public class Emp {
         return mv;
     }
 
-    
-    @Url(lien = "/data")
-    public ModelView getData(MySession session) {
+    @URL(lien = "/formulaire")
+    public ModelView formulaire(MySession session) {
         ModelView mv = new ModelView();
-        mv.setView("dataList.jsp");
+        mv.setView("formulaire.jsp");
         return mv;
     }
+
+    @Annotations.URL(lien="/save_employer")
+    @Annotations.POST
+    public ModelView save_emp(@Annotations.AnnotationParameter("employer") Emp employer) {
+        ModelView mv = new ModelView();
+        mv.setView("saveEmp.jsp");
+        mv.addItem("employer", employer);
+        
+        System.out.println("ID: " + employer.getId());
+        System.out.println("Nom: " + employer.getNom());
+        System.out.println("Age: " + employer.getAge());
+        System.out.println("Image: " + (employer.getImage() != null ? employer.getImage().getName() : "No image"));    
+        return mv;
+    }
+
 }
