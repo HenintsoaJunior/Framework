@@ -356,3 +356,88 @@ Voici une example Concret
 GESTION D'erreur
 
 En suivant ces étapes, vous pourrez configurer et utiliser le Framework 2802 efficacement
+
+### Spring 12 Validation des valeurs
+
+Validation des valeurs
+
+En suivant ces étapes, vous pourrez configurer et utiliser le Framework 2802 efficacement
+
+### Sprint 13 Throws Validation
+
+Ajoute des annotations des Validation
+checker les validation et returner une exception si le validation n'est pas respecter
+
+```java
+@ValidationManager.Email
+    @ValidationManager.MaxLength(value = 85,message = "Max valeurs depasser")
+    @ValidationManager.Required(message = "Le nom est requis")
+    @Annotations.AnnotationAttribute("nom")
+    String nom;
+    
+    @ValidationManager.MaxLength(value = 5,message = "Max valeurs depasser")
+    @ValidationManager.Numeric
+    @Annotations.AnnotationAttribute("age")
+    int age;
+    
+```
+
+### Sprint 14 Retour des erreurs de validation sur le formulaire
+
+Ajoute des annotations des Validation
+checker les validation et returner une exception si le validation n'est pas respecter
+
+```java
+@ValidationManager.Email
+    @ValidationManager.MaxLength(value = 85,message = "Max valeurs depasser")
+    @ValidationManager.Required(message = "Le nom est requis")
+    @Annotations.AnnotationAttribute("nom")
+    String nom;
+    
+    @ValidationManager.MaxLength(value = 5,message = "Max valeurs depasser")
+    @ValidationManager.Numeric
+    @Annotations.AnnotationAttribute("age")
+    int age;
+    
+```
+
+```jsp
+<%
+    Map<String, List<String>> errors = (Map<String, List<String>>) session.getAttribute("errors");
+    Map<String, String> validFormData = (Map<String, String>) session.getAttribute("validFormData");
+
+    if (errors == null) errors = new HashMap<>();
+    if (validFormData == null) validFormData = new HashMap<>();
+%>
+
+<form action="save_employer" method="post" enctype="multipart/form-data">
+        <div class="form-group <%= FormErrorHandler.getErrorClass(errors, "id") %>">
+        <label for="id">Id :</label>
+            <input type="text" id="id" name="employer.id" 
+                value="<%= FormErrorHandler.getValueOrDefault(validFormData, "employer.id", "") %>">
+            <%= FormErrorHandler.renderErrors(errors, "id") %>
+        </div>
+
+        <div class="form-group <%= FormErrorHandler.getErrorClass(errors, "nom") %>">
+            <label for="nom">Nom :</label>
+            <input type="text" id="nom" name="employer.nom" 
+                value="<%= FormErrorHandler.getValueOrDefault(validFormData, "employer.nom", "") %>">
+            <%= FormErrorHandler.renderErrors(errors, "nom") %>
+        </div>
+
+        <div class="form-group <%= FormErrorHandler.getErrorClass(errors, "age") %>">
+            <label for="age">Age :</label>
+            <input type="number" id="age" name="employer.age" 
+                value="<%= FormErrorHandler.getValueOrDefault(validFormData, "employer.age", "") %>">
+            <%= FormErrorHandler.renderErrors(errors, "age") %>
+        </div>
+
+        <div class="form-group <%= FormErrorHandler.getErrorClass(errors, "image") %>">
+            <label for="image">Image :</label>
+            <input type="file" id="image" name="employer.image" accept="image/*">
+            <%= FormErrorHandler.renderErrors(errors, "image") %>
+        </div>
+
+        <input type="submit" value="Valider" class="submit-button">
+    </form>
+```
