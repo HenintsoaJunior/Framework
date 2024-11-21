@@ -337,7 +337,7 @@ public class Utils {
                 } catch (ValidationException e) {
                     throw e;
                 } catch (Exception e) {
-                    throw new IllegalArgumentException("Error creating parameter object: " + paramName + 
+                    throw new IllegalArgumentException("Errors creating parameter object: " + paramName + 
                                                         " - " + e.getMessage(), e);
                 }
             } else {
