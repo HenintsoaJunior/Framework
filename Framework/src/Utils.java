@@ -248,11 +248,50 @@ public class Utils {
     }
     
     private static boolean isMethodAccessible(Method method, HttpServletRequest request) {
+        Class<?> declaringClass = method.getDeclaringClass();
+        
         // Check for @PUBLIC annotation first (highest priority)
         if (method.isAnnotationPresent(PUBLIC.class)) {
             return true;
         }
+        System.out.println("declaring class "+declaringClass.getName()+" ANNOTATION ENTENTIFICATE  "+declaringClass.isAnnotationPresent(Autentificate.class));
         
+        if (declaringClass.isAnnotationPresent(Autentificate.class)) {
+            Autentificate classAuth = declaringClass.getAnnotation(Autentificate.class);
+            String requiredRole = classAuth.value();
+            
+            // Authentication check for class-level annotation
+            HttpSession httpSession = request.getSession(false);
+            
+            // If no session exists, authentication fails
+            if (httpSession == null) {
+                return false;
+            }
+            
+            MySession session = new MySession(httpSession);
+            Object userRoles = session.get(etu2802.config.Config.getSESSION());
+            
+            // If no roles in session, authentication fails
+            if (userRoles == null) {
+                return false;
+            }
+            
+            // If no specific role required, just having a session is enough
+            if (requiredRole.isEmpty()) {
+                return true;
+            }
+            
+            // Check if user has the required role
+            if (userRoles instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<String> roles = (List<String>) userRoles;
+                
+                return roles.stream()
+                    .anyMatch(role -> role != null && role.equals(requiredRole));
+            }
+            
+            return false;
+        }
         
         // Check method-level authentication
         if (method.isAnnotationPresent(Autentificate.class)) {
