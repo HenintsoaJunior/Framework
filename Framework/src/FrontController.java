@@ -2,7 +2,6 @@ package etu2802;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 
 import javax.servlet.ServletConfig;

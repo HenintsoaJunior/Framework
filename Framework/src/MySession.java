@@ -14,9 +14,10 @@ public class MySession {
         return session.getAttribute(key);
     }
 
-    public void add(String key, Object objet) {
-        session.setAttribute(key, objet);
+    public void add(String var1, Object var2) {
+        this.session.setAttribute(var1, var2);
     }
+    
 
     public void delete(String key) {
         session.removeAttribute(key);
