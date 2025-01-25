@@ -359,8 +359,8 @@ En suivant ces étapes, vous pourrez configurer et utiliser le Framework 2802 ef
 
 ### Spring 12 Validation des valeurs
 
-File Upload 
-upload fichier
+Validation des valeurs
+
 En suivant ces étapes, vous pourrez configurer et utiliser le Framework 2802 efficacement
 
 ### Sprint 13 Throws Validation
@@ -383,6 +383,7 @@ checker les validation et returner une exception si le validation n'est pas resp
 ```
 
 ### Sprint 14 Retour des erreurs de validation sur le formulaire
+
 
 Ajoute des annotations des Validation
 checker les validation et returner une exception si le validation n'est pas respecter
@@ -440,4 +441,28 @@ checker les validation et returner une exception si le validation n'est pas resp
 
         <input type="submit" value="Valider" class="submit-button">
     </form>
+```
+
+### Sprint 15 Authentification AU niveau Methode
+
+```java
+@URL(lien="/listEmp")
+    @Autentificate("ADMIN")
+    @Annotations.Restapi
+    public List<Emp> getAllEmps() {
+        List<Emp> emps = new ArrayList<>();
+        emps.add(new Emp(1, "dax", "30"));
+        emps.add(new Emp(2, "alex", "25"));
+        emps.add(new Emp(3, "dax", "28"));
+        return emps;
+    }
+```
+
+### Sprint 16 Authentification AU niveau Class
+
+```java
+@Autentificate("ADMIN")
+public class Emp {
+}
+
 ```

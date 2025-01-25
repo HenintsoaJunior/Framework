@@ -45,4 +45,17 @@ public class Annotations {
         String lien();
     }
 
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface Autentificate {
+        String value();
+    }
+
+    
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    public @interface PUBLIC {
+    }
+
 }

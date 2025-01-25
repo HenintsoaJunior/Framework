@@ -3,12 +3,9 @@ package etu2802;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.time.LocalDate;
@@ -23,13 +20,16 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import javax.servlet.http.Part;
 import org.apache.commons.io.IOUtils;
 
 import com.google.gson.Gson;
 
+import etu2802.Annotations.Autentificate;
 import etu2802.Annotations.GET;
 import etu2802.Annotations.POST;
+import etu2802.Annotations.PUBLIC;
 import etu2802.Annotations.URL;
 import etu2802.validation.ValidationManager;
 import etu2802.validation.ValidationManager.ValidationResult;
@@ -48,16 +48,12 @@ public class Utils {
     }
 
     public static Method getMethodByUrl(Object objet, String mappingUrlKey, HashMap<String, Mapping> mappingUrls, String httpMethod) throws Exception {
-        System.out.println("Recherche de méthode pour URL: " + mappingUrlKey + ", Méthode HTTP: " + httpMethod);
     
         Mapping mapping = mappingUrls.get(mappingUrlKey);
         if (mapping == null) {
-            System.out.println("Aucun mapping trouvé pour l'URL: " + mappingUrlKey);
             throw new Exception("Aucun mapping trouvé pour l'URL donnée : " + mappingUrlKey);
         }
     
-        System.out.println("Mapping trouvé pour l'URL: " + mappingUrlKey);
-        System.out.println("Classe: " + mapping.getClassName());
     
         Set<VerbAction> verbActions = mapping.getVerbActions();
         if (verbActions == null || verbActions.isEmpty()) {
@@ -70,17 +66,14 @@ public class Utils {
         // Recherche de la méthode correspondant exactement à la méthode HTTP demandée
         Method exactMethod = findMethodByNameAndHttpMethod(objet.getClass(), verbActions, httpMethod);
         if (exactMethod != null) {
-            System.out.println("Méthode exacte trouvée pour " + httpMethod);
             return exactMethod;
         }
     
         // Si aucune méthode exacte n'est trouvée et que c'était une requête POST,
         // recherche d'une méthode GET par défaut
         if (httpMethod.equalsIgnoreCase("POST")) {
-            System.out.println("Aucune méthode POST trouvée, recherche d'une méthode GET par défaut");
             Method defaultGetMethod = findMethodByNameAndHttpMethod(objet.getClass(), verbActions, "GET");
             if (defaultGetMethod != null) {
-                System.out.println("Méthode GET par défaut trouvée");
                 return defaultGetMethod;
             }
         }
@@ -89,7 +82,6 @@ public class Utils {
         for (VerbAction verbAction : verbActions) {
             Method method = findMethodWithoutHttpAnnotation(objet.getClass(), verbAction.getMethod());
             if (method != null) {
-                System.out.println("Méthode sans annotation HTTP trouvée");
                 return method;
             }
         }
@@ -166,12 +158,10 @@ public class Utils {
                         String fullClassName = packageName + "." + className.substring(path.length() + 1, className.length() - 6).replace('/', '.');
                         try {
                             Class<?> myClass = Class.forName(fullClassName);
-                            System.out.println("Analysing class: " + myClass.getSimpleName());
-
+    
                             for (Method method : myClass.getDeclaredMethods()) {
                                 if (method.isAnnotationPresent(URL.class)) {
                                     URL url = method.getAnnotation(URL.class);
-                                    System.out.println("Found URL annotation: " + url.lien() + " for method: " + method.getName());
                     
                                     Mapping map = mappingUrl.get(url.lien());
                                     if (map == null) {
@@ -180,17 +170,14 @@ public class Utils {
                                     }
                     
                                     if (method.isAnnotationPresent(GET.class)) {
-                                        System.out.println("Adding GET VerbAction for method: " + method.getName());
                                         map.addVerbAction(new VerbAction(method.getName(), "GET"));
                                     }
                                     if (method.isAnnotationPresent(POST.class)) {
-                                        System.out.println("Adding POST VerbAction for method: " + method.getName());
                                         map.addVerbAction(new VerbAction(method.getName(), "POST"));
                                     }
                                     
                                     // Si aucune annotation HTTP n'est présente, ajouter GET par défaut
                                     if (!method.isAnnotationPresent(GET.class) && !method.isAnnotationPresent(POST.class)) {
-                                        System.out.println("Adding default GET VerbAction for method: " + method.getName());
                                         map.addVerbAction(new VerbAction(method.getName(), "GET"));
                                     }
                                 }
@@ -213,8 +200,8 @@ public class Utils {
     }
 
     public static void dispatchModelView(HttpServletRequest request, HttpServletResponse response, 
-                                       Object object, String mappingUrlKey, 
-                                       HashMap<String, Mapping> mappingUrls) throws Exception {
+                                    Object object, String mappingUrlKey, 
+                                    HashMap<String, Mapping> mappingUrls) throws Exception {
         ModelView currentView = null;
         try {
             String httpMethod = request.getMethod();
@@ -222,6 +209,10 @@ public class Utils {
             
             if (method == null) {
                 throw new Exception("Méthode non trouvée pour l'URL : " + mappingUrlKey);
+            }
+
+            if (!isMethodAccessible(method, request)) {
+                throw new Exception("CETTE PAGE N'EST PAS ACCESSIBLE");
             }
 
             try {
@@ -245,17 +236,63 @@ public class Utils {
                     }
                 }
             } catch (ValidationException ve) {
-                System.out.println("Erreur de validation détectée");
                 handleValidationError(request, response, ve, currentView);
             }
         } catch (Exception e) {
-            System.out.println("Erreur : " + e.getMessage());
             if (e instanceof ValidationException) {
                 handleValidationError(request, response, (ValidationException) e, currentView);
             } else {
                 handleGenericError(request, response, e, currentView);
             }
         }
+    }
+    
+    private static boolean isMethodAccessible(Method method, HttpServletRequest request) {
+        // Check for @PUBLIC annotation first (highest priority)
+        if (method.isAnnotationPresent(PUBLIC.class)) {
+            return true;
+        }
+        
+        
+        // Check method-level authentication
+        if (method.isAnnotationPresent(Autentificate.class)) {
+            Autentificate methodAuth = method.getAnnotation(Autentificate.class);
+            String requiredRole = methodAuth.value();
+            
+            HttpSession httpSession = request.getSession(false);
+            
+            // If no session exists, authentication fails
+            if (httpSession == null) {
+                return false;
+            }
+            
+            MySession session = new MySession(httpSession);
+            Object userRoles = session.get(etu2802.config.Config.getSESSION());
+            
+            // If no roles in session, authentication fails
+            if (userRoles == null) {
+                return false;
+            }
+            
+            // If no specific role required, just having a session is enough
+            if (requiredRole.isEmpty()) {
+                return true;
+            }
+            
+            // Check if user has the required role
+            if (userRoles instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<String> roles = (List<String>) userRoles;
+                
+                return roles.stream()
+                    .anyMatch(role -> role != null && role.equals(requiredRole));
+            }
+            
+            return false;
+        }
+        
+        // If no authentication annotations, method is accessible
+        return true;
     }
 
     public static Object[] getMethodParams(Method method, HttpServletRequest request, Object instance) throws Exception {
@@ -269,7 +306,6 @@ public class Utils {
         for (int i = 0; i < parameters.length; i++) {
             Class<?> paramType = parameters[i].getType();
     
-            // Si le paramètre est de type MySession, on le crée à partir de la session
             if (paramType.equals(MySession.class)) {
                 methodParams[i] = new MySession(request.getSession());
                 sessionParameterFound = true;
@@ -277,7 +313,6 @@ public class Utils {
             }
     
             String paramName;
-            // Récupérer le nom du paramètre en fonction des annotations
             if (parameters[i].isAnnotationPresent(Annotations.AnnotationParameter.class)) {
                 paramName = parameters[i].getAnnotation(Annotations.AnnotationParameter.class).value();
             } else if (parameters[i].isAnnotationPresent(Annotations.AnnotationAttribute.class)) {
@@ -336,9 +371,6 @@ public class Utils {
     
                 } catch (ValidationException e) {
                     throw e;
-                } catch (Exception e) {
-                    throw new IllegalArgumentException("Errors creating parameter object: " + paramName + 
-                                                        " - " + e.getMessage(), e);
                 }
             } else {
                 String paramValue = getParameterValue(request, isMultipart, paramName);
